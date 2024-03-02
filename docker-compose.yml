@@ -1,0 +1,41 @@
+services:
+  backend:
+    build:
+      dockerfile: ../rishat_stripe_2402_django/django.Dockerfile
+      context: ../rishat_stripe_2402_django
+    env_file:
+      - .env_docker_compose
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.docker_compose
+      - WSGI_MODULE=config.wsgi_docker_compose
+    depends_on:
+      - db
+    command: bash -c "python manage.py migrate --settings=$$DJANGO_SETTINGS_MODULE; python manage.py collectstatic --noinput --settings=$$DJANGO_SETTINGS_MODULE; gunicorn --bind :8000 --workers 3 $$WSGI_MODULE:application"
+    volumes:
+      - static_django:/root/rishat_stripe/static/
+  db:
+    image: postgres
+    env_file:
+      - .env_docker_compose
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+  nginx:
+    build:
+      dockerfile: ../rishat_stripe_2402_nginx/nginx.Dockerfile
+    environment:
+      - PROXY_ADDRESS=http://backend:8000
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    volumes:
+      - static_django:/home/nginx_user/rishat_nginx/django_static/
+  stripe:
+    image: stripe/stripe-cli:latest
+    env_file:
+      - .env_docker_compose
+    command: listen --forward-to backend:8000/webhook/ --api-key $$STRIPE_SECRET_API_KEY
+
+volumes:
+  pg_data:
+  static_django:

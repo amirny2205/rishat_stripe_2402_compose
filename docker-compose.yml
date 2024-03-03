@@ -22,6 +22,7 @@ services:
   nginx:
     build:
       dockerfile: ../rishat_stripe_2402_nginx/nginx.Dockerfile
+      context: ../rishat_stripe_2402_nginx
     environment:
       - PROXY_ADDRESS=http://backend:8000
     ports:

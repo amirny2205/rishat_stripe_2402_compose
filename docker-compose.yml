@@ -9,7 +9,8 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings.docker_compose
       - WSGI_MODULE=config.wsgi_docker_compose
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     command: bash -c "python manage.py migrate --settings=$$DJANGO_SETTINGS_MODULE; python manage.py collectstatic --noinput --settings=$$DJANGO_SETTINGS_MODULE; gunicorn --bind :8000 --workers 3 $$WSGI_MODULE:application"
     volumes:
       - static_django:/root/rishat_stripe/static/
@@ -19,6 +20,11 @@ services:
       - .env_docker_compose
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   nginx:
     build:
       dockerfile: ../rishat_stripe_2402_nginx/nginx.Dockerfile
